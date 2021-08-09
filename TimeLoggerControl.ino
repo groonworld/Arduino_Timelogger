@@ -1,21 +1,28 @@
-#include <stdio.h>
 
+/*
+ * TODO: Implement pulsating LEDs
+ * TODO: Implement signalling from Python back to Arduino when target time amount is reached
+ */
+ 
 // Input pins (Buttons):
 const int btn1 = 2;
 const int btn2 = 4;
 const int btn3 = 8;
 const int btn4 = 9;
-int btns[] = {btn1, btn2, btn3, btn4};
 
 // Output pins (LEDs):
 const int led1 = 3;
 const int led2 = 5;
 const int led3 = 6;
 const int led4 = 11;
+
+int btns[] = {btn1, btn2, btn3, btn4};
 int leds[] = {led1, led2, led3, led4};
 
 // Variables:
-int btnState = 0;
+int btn = 0;
+int lastBTN = -1;
+bool currentlyLogging = false;
 
 
 void setup() {
@@ -29,19 +36,39 @@ void setup() {
 
   // Open Serial
   Serial.begin(9600);
-  Serial.println("Serial is now active.");
+  Serial.println("Serial logging now active.");
 }
 
 void loop() {
-  
-  btnState = readBtns();
-  if (btnState != 0) {
-    Serial.print("Button ");
-    Serial.print(btnState);
-    Serial.print(" was pressed.\n");
-    digitalWrite(leds[btnState - 1], HIGH);
-    delay(800); 
-    lightsOut();
+  /*
+   * Serial Data: 
+   * States: 1, 2, 3, 4 for logging in to the perspective states; 5, 6, 7, 8 for logging out.
+   * Possible future feature: 9 and 0 sent from python to switch an LED signal if a certain target time has been reached.
+   */
+   
+  btn = readBtns(); 
+  if (btn != 0) {
+    if (!currentlyLogging) {              //Being logged out means we're doing a simple log-in
+      Serial.println(btn);
+      lightsOn(btn);
+      lastBTN = btn;
+      currentlyLogging = true;
+    } else {                              // Already logging means we're either logging out or switching to a different state.
+      if (btn == lastBTN) {               // Same button means we're logging out.
+        Serial.println(btn + 4);
+        lightsOut();
+        lastBTN = 0;
+        currentlyLogging = false;
+      } else {                            // Different button means switching states.
+        Serial.println(lastBTN + 4);
+        lightsOut();
+        delay(100);
+        Serial.println(btn);
+        lightsOn(btn);
+        lastBTN = btn;   
+      }
+    }
+    delay(500);  // Debounce button. Don't need fancy millis() solutions because time is handled by the Python script and non-critical here.
   }
 }
 
@@ -52,15 +79,19 @@ void loop() {
 
 
 int readBtns() {
-// Reads all buttons and returns 1, 2, 3, or 4 depending on which button was pressed, 0 if no button press is detected.
+// Reads all buttons and returns 0 for no button press, or 1 through 4 depending on which button was pressed.  
   for (int i = 0; i < 4; i++) {
-    if(digitalRead(btns[i]) == LOW){        //DEBUG: Serial.print("A button was pressed. ");
+    if(digitalRead(btns[i]) == LOW){
       return (i + 1);
-    }                                       //DEBUG: else {Serial.print("No button press detected.\n");}
+    }
   }
   return 0;
 }
 
+void lightsOn(int btn) {
+// Switches on a LED
+  digitalWrite(leds[btn - 1], HIGH);  
+}
 
 void lightsOut() {
 // Switches off all LEDs  
