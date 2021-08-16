@@ -1,7 +1,7 @@
 
 /*
  * TODO: Implement pulsating LEDs
- * TODO: Implement signalling from Python back to Arduino when target time amount is reached
+ * TODO: Implement signalling from Python back to Arduino for LED signalling when targets have been met
  */
  
 // Input pins (Buttons):
@@ -36,7 +36,7 @@ void setup() {
 
   // Open Serial
   Serial.begin(9600);
-  Serial.println("Serial logging now active.");
+  //Serial.println("Serial logging now active.");
 }
 
 void loop() {
@@ -62,7 +62,7 @@ void loop() {
       } else {                            // Different button means switching states.
         Serial.println(lastBTN + 4);
         lightsOut();
-        delay(100);
+        delay(200);                       // Time for python script to read
         Serial.println(btn);
         lightsOn(btn);
         lastBTN = btn;   
